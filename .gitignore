@@ -1,0 +1,9 @@
+# Data for proctoring
+data
+
+# Test results file
+*.json
+*.txt
+*.csv
+*.html
+result-*.log
