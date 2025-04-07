@@ -1,6 +1,6 @@
 import http from "k6/http";
 import { check } from "k6";
-import { BASE_URL, TOKEN, ID_TOKEN, ORIGIN } from "../libs/config.js";
+import { BASE_URL, ORIGIN } from "../libs/config.js";
 import { trackMetrics, microphoneTestMetrics } from "../libs/metrics.js";
 import { FormData } from "https://jslib.k6.io/formdata/0.0.2/index.js";
 
@@ -12,37 +12,35 @@ const sampleSpeech = encodeURIComponent(
     "This is audio recording test for proctoring exam. The proctored exam is being conducted through fuse classroom platform. And I there by abide to the rules of proctored exam which is going to start now."
 );
 
-export function microphoneTest() {
+// export function microphoneTest(token, id_token, quizId) {
+export function microphoneTest(token, id_token, quizId) {
     const fd = new FormData();
     fd.append("files", http.file(audioFile, "sample_audio.wav", "audio/x-wav"));
 
     let headers = {
-        Authorization: TOKEN,
-        idToken: ID_TOKEN,
+        Authorization: token,
+        idToken: id_token,
         Origin: ORIGIN,
-        "Content-Type": "multipart/form-data; boundary=" + fd.boundary,
+        "Content-Type": `multipart/form-data; boundary=${fd.boundary}`,
     };
 
-    let url = `${BASE_URL}/api/proctor/meetings/677f8035b9c56a4f0c627763/proctor-validator?finalCall=false&fileType=audio&sampleSpeech=${sampleSpeech}&audioThresholdScore=${audioThresholdScore}`;
+    let url = `${BASE_URL}/api/proctor/meetings/${quizId}/proctor-validator?finalCall=false&fileType=audio&sampleSpeech=${sampleSpeech}&audioThresholdScore=${audioThresholdScore}`;
 
     let res = http.post(url, fd.body(), {
         headers: headers,
-        tags: { api: "microphoneTest" },
+        tags: {
+            api: "microphone-test",
+            method: "POST",
+            target: "/api/proctor/meetings/proctor-validator",
+        },
         timeout: "120s",
     });
 
-    let jsonResponse;
-    try {
-        jsonResponse = res.json();
-    } catch (error) {
-        console.error(
-            `Failed to parse JSON response in Microphone Test: ${res.body}`
-        );
-    }
-
     check(res, {
-        "microphone test successful": () => res.status === 200,
+        "Microphone test successful": () => res.status === 200,
     });
 
-    trackMetrics(res, microphoneTestMetrics);
+    trackMetrics(res, microphoneTestMetrics, "microphoneAPI");
+
+    return res;
 }
