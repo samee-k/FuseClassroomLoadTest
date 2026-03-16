@@ -29,7 +29,7 @@ def login_user(username, password):
 
 # Generate 500 test users and log them in
 users = []
-for i in range(1, 500):
+for i in range(1, 501):  # Generate users from 1 to 500
     email = f"classroom-proctor-load-testing{i:04d}@yopmail.com"  # Sequential emails
     # email = "sachitratnapahari.sa@yopmail.com"  # Sequential emails
     password = "Test@123"  # Same password for all users
