@@ -1,6 +1,7 @@
 import http from "k6/http";
 import { check } from "k6";
 import { BASE_URL, ORIGIN } from "../../libs/config.js";
+import { apiFailures } from "../../libs/metrics.js";
 
 export function fetchQuiz(token, id_token) {
     const url = `${BASE_URL}/api/v2/students/quiz?batchIds=&courseIds=&quizAttemptType=&quizType=EXAM&page=1&size=10`;
