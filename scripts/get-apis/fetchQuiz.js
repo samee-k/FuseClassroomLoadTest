@@ -16,6 +16,7 @@ export function fetchQuiz(token, id_token) {
     const res = http.get(url, {
         headers: headers,
         tags: { api: "quiz", method: "GET", target: "api/v2/students/quiz" },
+        timeout: "120s",
     });
 
     const success = check(res, {
