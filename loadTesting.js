@@ -22,7 +22,9 @@ const runPeriodicScreenViolation =
     (__ENV.RUN_PERIODIC_SCREEN_VIOLATION || "false") === "true";
 const periodicViolationEvery = Number(__ENV.PERIODIC_VIOLATION_EVERY || 10);
 const useConfigToken = (__ENV.USE_CONFIG_TOKEN || "false") === "true";
-const maxDurationSeconds = examDurationSeconds + 900;
+const realisticLoad = (__ENV.REALISTIC_LOAD || "false") === "true";
+const startSpreadSeconds = Number(__ENV.START_SPREAD_SECONDS || 300);
+const maxDurationSeconds = examDurationSeconds + 900 + startSpreadSeconds;
 
 let isoDate;
 
@@ -114,10 +116,17 @@ export default function (data) {
 
         let user = parsedData[vuIndex]; // Directly assign a unique user per VU
         token = user.access_token.trim() || "MISSING_TOKEN";
-        id_token = user.id_token?.trim() || "MISSING_ID_TOKEN";
+        id_token = user.id_tokenstaggered?.trim() || "MISSING_ID_TOKEN";
     }
 
     // console.log(`VU ${__VU} using access_token: ${token}`);
+
+    // Stagger the pre-check start per VU to avoid a thundering-herd startup spike.
+    if (realisticLoad && startSpreadSeconds > 0 && vusConfigured > 1) {
+        const position = (__VU - 1) / (vusConfigured - 1);
+        const staggerDelaySeconds = Math.round(position * startSpreadSeconds);
+        sleep(staggerDelaySeconds);
+    }
 
     const isoDate = data.isoDate;
     group(
