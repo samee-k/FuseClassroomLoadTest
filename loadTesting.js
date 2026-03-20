@@ -26,6 +26,20 @@ const realisticLoad = (__ENV.REALISTIC_LOAD || "false") === "true";
 const startSpreadSeconds = Number(__ENV.START_SPREAD_SECONDS || 300);
 const maxDurationSeconds = examDurationSeconds + 900 + startSpreadSeconds;
 
+function normalizeAuthorizationToken(rawToken) {
+    const value = (rawToken || "").trim();
+    if (!value) {
+        return "MISSING_TOKEN";
+    }
+
+    // Ensure we always send a canonical Authorization header.
+    if (/^bearer\s+/i.test(value)) {
+        return value.replace(/^bearer\s+/i, "Bearer ");
+    }
+
+    return `Bearer ${value}`;
+}
+
 let isoDate;
 
 const fileContent = useConfigToken
@@ -60,7 +74,7 @@ export function setup() {
     let hasDuplicate = false;
 
     for (const user of parsedData) {
-        const token = user.access_token.trim();
+        const token = normalizeAuthorizationToken(user.access_token);
         if (tokenSet.has(token)) {
             console.error(`🚨 DUPLICATE TOKEN IN CSV: ${token}`);
             hasDuplicate = true;
@@ -115,8 +129,8 @@ export default function (data) {
         }
 
         let user = parsedData[vuIndex]; // Directly assign a unique user per VU
-        token = user.access_token.trim() || "MISSING_TOKEN";
-        id_token = user.id_tokenstaggered?.trim() || "MISSING_ID_TOKEN";
+        token = normalizeAuthorizationToken(user.access_token);
+        id_token = user.id_token?.trim() || "MISSING_ID_TOKEN";
     }
 
     // console.log(`VU ${__VU} using access_token: ${token}`);
