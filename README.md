@@ -66,6 +66,53 @@ This project uses k6 for load testing. Follow the steps below to install and run
 2. Running the Test
 
 -   `k6 run loadTesting.js`
+-   Single-user quick validation (recommended while debugging):
+    `RUN_MODE=single SINGLE_VUS=1 ITERATIONS=1 SINGLE_MAX_DURATION=2m EXAM_DURATION_MINUTES=2 ENABLE_VARIABLE_SESSION_DURATION=false PROCTOR_INTERVAL_SECONDS=10 k6 run loadTesting.js`
+
+### Concurrency Profiles
+
+-   Ramp-up profile (default):
+    `RUN_MODE=rampup k6 run loadTesting.js`
+-   True concurrent profile (all users start together):
+    `RUN_MODE=concurrent CONCURRENT_VUS=100 CONCURRENT_MAX_DURATION=40m EXAM_DURATION_MINUTES=35 CONCURRENT_FIXED_SESSION_DURATION=true ENABLE_VARIABLE_SESSION_DURATION=false PROCTOR_INTERVAL_SECONDS=30 k6 run loadTesting.js`
+-   Peak profile for infra validation (for example 230 users):
+    `RUN_MODE=peak PEAK_VUS=230 PEAK_MAX_DURATION=50m EXAM_DURATION_MINUTES=45 CONCURRENT_FIXED_SESSION_DURATION=true ENABLE_VARIABLE_SESSION_DURATION=false PROCTOR_INTERVAL_SECONDS=30 k6 run loadTesting.js`
+
+### Quality Gates
+
+-   The script now enforces these default thresholds:
+    - `http_req_failed: rate<0.01`
+    - `checks: rate>0.99`
+    - `http_req_duration: p(95)<5000`
+-   Override if needed:
+    - `HTTP_REQ_FAILED_RATE_THRESHOLD`
+    - `CHECK_RATE_THRESHOLD`
+    - `HTTP_REQ_DURATION_P95_MS`
+
+### Timing Notes (Important)
+
+-   `maxDuration` is a hard cap per scenario; if one iteration takes longer, k6 interrupts it.
+-   In this project, long proctoring loops can make one iteration run for many minutes.
+-   The script now auto-caps per-user session time based on scenario `maxDuration` (with a small safety buffer) so iterations can finish in short runs.
+-   Optional safety buffer override: `SCENARIO_SAFETY_BUFFER_SECONDS=20` (default: `20`).
+
+3. Running With Generator CPU/RAM Monitoring
+
+-   Use the helper script to run k6 and capture load-generator health in logs:
+    `bash scripts/run_k6_with_monitoring.sh loadTesting.js`
+-   Optional: change sampling interval (default is 2s):
+    `MONITOR_INTERVAL_SECONDS=1 bash scripts/run_k6_with_monitoring.sh loadTesting.js`
+-   Logs are saved under:
+    `report/monitoring_<timestamp>/`
+-   Generated files:
+    - `k6-output.log` for k6 output
+    - `system.log` for CPU/RAM/load, host network throughput, and k6 process usage over time
+
+### Monitoring Scope (Important)
+
+-   `system.log` captures load-generator machine metrics only.
+-   For server-side CPU, memory, network, autoscaling events, and pod/instance limits, collect metrics from your infrastructure stack (CloudWatch, Prometheus/Grafana, Datadog, Kubernetes metrics, or VM monitoring).
+-   Use the same time window as `k6-output.log` when sharing DevOps metrics for 100 and 230 user runs.
 
 ## Report
 
